@@ -8,6 +8,9 @@ from shutil import copyfile
 import numpy as np
 
 from .dataset import TIGREDataset as Dataset
+from .dataset.tigre import PETDataset
+
+
 from .network import get_network
 from .encoder import get_encoder
 
@@ -18,10 +21,10 @@ class Trainer:
         # Args
         self.global_step = 0
         self.conf = cfg
-        self.n_fine = cfg["render"]["n_fine"]
         self.epochs = cfg["train"]["epoch"]
         self.i_eval = cfg["log"]["i_eval"]
         self.i_save = cfg["log"]["i_save"]
+        self.n_file = cfg["render"]["n_file"]
         self.netchunk = cfg["render"]["netchunk"]
         self.n_rays = cfg["train"]["n_rays"]
   
@@ -33,11 +36,14 @@ class Trainer:
         os.makedirs(self.evaldir, exist_ok=True)
 
         # Dataset
-        train_dset = Dataset(cfg["exp"]["datadir"], cfg["train"]["n_rays"], "train", device)
-        self.eval_dset = Dataset(cfg["exp"]["datadir"], cfg["train"]["n_rays"], "val", device) if self.i_eval > 0 else None
-        self.train_dloader = torch.utils.data.DataLoader(train_dset, batch_size=cfg["train"]["n_batch"])
-        self.voxels = self.eval_dset.voxels if self.i_eval > 0 else None
-    
+        # train_dset = Dataset(cfg["exp"]["datadir"], cfg["train"]["n_rays"], "train", device)
+        # self.eval_dset = Dataset(cfg["exp"]["datadir"], cfg["train"]["n_rays"], "val", device) if self.i_eval > 0 else None
+        # self.train_dloader = torch.utils.data.DataLoader(train_dset, batch_size=cfg["train"]["n_batch"])
+        # self.voxels = self.eval_dset.voxels if self.i_eval > 0 else None
+        train_dset=PETDataset()
+        self.eval_dset = PETDataset("val") if self.i_eval > 0 else None
+        self.train_dloader=torch.utils.data.DataLoader(train_dset,batch_size=cfg["train"]["n_batch"])
+
         # Network
         network = get_network(cfg["network"]["net_type"])
         cfg["network"].pop("net_type", None)

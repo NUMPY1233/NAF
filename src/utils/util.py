@@ -25,6 +25,35 @@ def get_psnr(x, y):
     return psnr
 
 
+import numpy as np
+
+
+def get_psnr_2d(arr1, arr2, PIXEL_MAX=1.0):
+    """
+    Calculate Peak Signal-to-Noise Ratio (PSNR) for 2D images.
+
+    Parameters:
+    - arr1: numpy array, Original image, shape [H, W] (assuming values in [0, 1])
+    - arr2: numpy array, Compared image, shape [H, W] (assuming values in [0, 1])
+    - PIXEL_MAX: float, Maximum pixel value (default is 1.0 for images in [0, 1])
+
+    Returns:
+    - psnr: float, PSNR value
+    """
+    arr1 = arr1.astype(np.float64)
+    arr2 = arr2.astype(np.float64)
+
+    eps = 1e-10
+    se = np.power(arr1 - arr2, 2)
+    mse = np.mean(se)
+    if mse == 0:
+        psnr = 100
+    else:
+        psnr = 20 * np.log10(PIXEL_MAX / np.sqrt(mse))
+
+    return psnr
+
+
 def get_psnr_3d(arr1, arr2, size_average=True, PIXEL_MAX=1.0):
     """
     :param arr1:
@@ -55,6 +84,29 @@ def get_psnr_3d(arr1, arr2, size_average=True, PIXEL_MAX=1.0):
         return psnr.mean()
     else:
         return psnr
+
+
+import numpy as np
+from skimage.metrics import structural_similarity
+
+
+def get_ssim_2d(arr1, arr2):
+    """
+    Calculate Structural Similarity Index (SSIM) for 2D images.
+
+    Parameters:
+    - arr1: numpy array, Original image, shape [H, W] (assuming values in [0, 1])
+    - arr2: numpy array, Compared image, shape [H, W] (assuming values in [0, 1])
+
+    Returns:
+    - ssim_avg: float, Average SSIM value
+    """
+    assert arr1.shape == arr2.shape, "Input images must have the same shape"
+    assert arr1.ndim == 2 and arr2.ndim == 2, "Input images must be 2D arrays"
+
+    ssim = structural_similarity(arr1, arr2)
+
+    return ssim
 
 
 def get_ssim_3d(arr1, arr2, size_average=True, PIXEL_MAX=1.0):

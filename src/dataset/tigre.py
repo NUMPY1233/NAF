@@ -1,10 +1,12 @@
 import torch
 import pickle
 import os
+import re
 import sys
 import numpy as np
-
+from scipy.io import loadmat
 from torch.utils.data import DataLoader, Dataset
+from torchvision import transforms
 
 
 class ConeGeometry(object):
@@ -35,6 +37,54 @@ class ConeGeometry(object):
         # Mode
         self.mode = data["mode"]  # parallel, cone                ...
         self.filter = data["filter"]
+
+class PETDataset(Dataset):
+    """
+    PET dataset.
+    """
+    def __init__(self, imgpath='/home/zyl/workspace/NAF/data/pet0/image',sinopath='/home/zyl/workspace/NAF/data/pet0/sinogram', type="train", device="cuda"):
+        super().__init__()
+        self.type = type
+        if self.type=="train":
+            self.imgpath = os.path.join(imgpath,'train')
+            self.sinopath = os.path.join(sinopath,'train')
+        elif self.type=="val":
+            self.imgpath = os.path.join(imgpath,'val')
+            self.sinopath = os.path.join(sinopath,'val')
+        elif self.type=="test":
+            self.imgpath = os.path.join(imgpath,'test')
+            self.sinopath = os.path.join(sinopath,'test')
+        else:
+            raise ValueError("Unknown dataset type!")
+        self.device = device
+        self.imgtransform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(0.5,0.5)
+        ])
+        self.sinotransform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(0.5, 0.5)
+        ])
+
+    def pairs_list(self):
+        pairs = []
+        imgs_files = sorted(os.listdir(self.imgpath),key=lambda x:int(x[3:-4]))
+        sinos_files = sorted(os.listdir(self.sinopath),key=lambda x:int(x[4:-4]))
+        for imgfile, sinofile in zip(imgs_files, sinos_files):
+            assert int(re.search('\d+',imgfile).group())==int(re.search('\d+',sinofile).group())
+            pairs.append((imgfile, sinofile))
+        return pairs
+    def __len__(self):
+        return len(self.pairs_list())
+    def __getitem__(self,idx):
+        imgfile, sinofile = self.pairs_list()[idx]
+        img=loadmat(os.path.join(self.imgpath,imgfile))['imgHD']
+        sino=loadmat(os.path.join(self.sinopath,sinofile))['sinoHD']
+        img=(img-img.min())/(img.max()-img.min())
+        sino=(sino-sino.min())/(sino.max()-sino.min())
+        data={'img':self.imgtransform(img).to(self.device),'sino':self.sinotransform(sino).to(self.device)}
+        return data
+
 
 
 class TIGREDataset(Dataset):
@@ -184,3 +234,11 @@ class TIGREDataset(Dataset):
         near = np.max([0, geo.DSO - dist_max - tolerance])
         far = np.min([geo.DSO * 2, geo.DSO + dist_max + tolerance])
         return near, far
+if __name__ =="__main__":
+    ds= PETDataset()
+    print(len(ds))
+    idx=0
+    img=ds[idx]['img']
+    sino=ds[idx]['sino']
+    print(img.shape,sino.shape)
+    print(img.max(),img.min()),print(sino.max(),sino.min())

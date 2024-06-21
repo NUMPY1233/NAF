@@ -2,7 +2,7 @@ from .hashencoder import HashEncoder
 from .freqencoder import FreqEncoder
 
 
-def get_encoder(encoding, input_dim=3, 
+def get_encoder(encoding, input_dim=2,
                 multires=6, 
                 degree=4,
                 num_levels=16, level_dim=2, base_resolution=16, log2_hashmap_size=19,
